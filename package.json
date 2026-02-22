@@ -9,8 +9,8 @@
     "start": "next start"
   },
   "dependencies": {
-    "@dofinity/mosaic-auth": "file:../mosaic-auth",
-    "@dofinity/mosaic-core": "file:../mosaic-core",
+    "@dofinity/mosaic-auth": "^0.1.1",
+    "@dofinity/mosaic-core": "^0.7.6",
     "events": "^3.3.0",
     "winston": "^3.18.3",
     "@xyflow/react": "^12.4.4",
