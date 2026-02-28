@@ -3,20 +3,26 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useDemoStore } from "@/stores/demo-store";
 
+/**
+ * Connects to the /api/events SSE endpoint instead of a raw WebSocket.
+ * The hook name is kept as useWebSocket() to avoid changing call-sites.
+ */
 export function useWebSocket() {
-  const wsRef = useRef<WebSocket | null>(null);
+  const esRef = useRef<EventSource | null>(null);
   const reconnectTimer = useRef<NodeJS.Timeout>(undefined);
   const { addEvent, setConnected, updateBdiState, incrementStat } = useDemoStore();
 
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (esRef.current?.readyState === EventSource.OPEN) return;
+
+    // Close any stale connection
+    esRef.current?.close();
 
     try {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001";
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
+      const es = new EventSource("/api/events");
+      esRef.current = es;
 
-      ws.onopen = () => {
+      es.onopen = () => {
         setConnected(true);
         if (reconnectTimer.current) {
           clearTimeout(reconnectTimer.current);
@@ -24,10 +30,10 @@ export function useWebSocket() {
         }
       };
 
-      ws.onmessage = (event) => {
+      es.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "ws:connected") return;
+          if (data.type === "sse:connected") return;
 
           // Add to event stream
           addEvent(data);
@@ -45,15 +51,12 @@ export function useWebSocket() {
         }
       };
 
-      ws.onclose = () => {
+      es.onerror = () => {
         setConnected(false);
-        wsRef.current = null;
+        es.close();
+        esRef.current = null;
         // Reconnect after 2s
         reconnectTimer.current = setTimeout(connect, 2000);
-      };
-
-      ws.onerror = () => {
-        ws.close();
       };
     } catch {
       reconnectTimer.current = setTimeout(connect, 2000);
@@ -64,9 +67,9 @@ export function useWebSocket() {
     connect();
     return () => {
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-      wsRef.current?.close();
+      esRef.current?.close();
     };
   }, [connect]);
 
-  return { ws: wsRef };
+  return { connected: esRef };
 }
