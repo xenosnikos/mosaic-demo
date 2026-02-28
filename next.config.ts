@@ -5,7 +5,6 @@ const nextConfig: NextConfig = {
     "@dofinity/mosaic-core",
     "@dofinity/mosaic-auth",
     "openai",
-    "ws",
     "winston",
     "events",
     "dotenv",
@@ -26,7 +25,6 @@ const nextConfig: NextConfig = {
         "dotenv",
         "events",
         "openai",
-        "ws",
         /^@dofinity\/.*/,
       ];
     }
