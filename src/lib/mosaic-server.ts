@@ -11,6 +11,7 @@ import {
 import { DemoCoordinatorAgent } from "@/lib/agents/coordinator";
 import { MosaicKnowledgeAgent } from "@/lib/agents/knowledge";
 import { MosaicCodeAgent } from "@/lib/agents/code";
+import { sseBroadcast } from "@/lib/event-emitter";
 
 const log = createLogger("mosaic-demo");
 
@@ -117,22 +118,19 @@ async function doInit(state: MosaicDemoGlobal) {
     const t = (msg as Envelope).type || "unknown";
     state.messageCountByType[t] = (state.messageCountByType[t] || 0) + 1;
 
-    // Forward all messages to WebSocket clients
-    const broadcast = (globalThis as any).__wsBroadcast;
-    if (broadcast) {
-      try {
-        broadcast({
-          id: (msg as Envelope).id,
-          type: (msg as Envelope).type,
-          from: (msg as Envelope).from,
-          to: (msg as Envelope).to,
-          timestamp: (msg as Envelope).timestamp,
-          sessionId: (msg as Envelope).sessionId,
-          payload: safePayload((msg as Envelope).payload),
-        });
-      } catch {
-        // Ignore serialization errors
-      }
+    // Forward all messages to SSE clients
+    try {
+      sseBroadcast.emit({
+        id: (msg as Envelope).id,
+        type: (msg as Envelope).type,
+        from: (msg as Envelope).from,
+        to: (msg as Envelope).to,
+        timestamp: (msg as Envelope).timestamp,
+        sessionId: (msg as Envelope).sessionId,
+        payload: safePayload((msg as Envelope).payload),
+      });
+    } catch {
+      // Ignore serialization errors
     }
 
     return msg; // pass through
